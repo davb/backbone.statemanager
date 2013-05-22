@@ -182,6 +182,34 @@ describe 'Backbone.StateManager', =>
 
         it 'sets the currentState', => expect(@stateManager.currentState).toEqual 'noTransitions'
 
+      describe 'order of calls', =>
+        currentState_in_stateenter_call = null
+        currentState_in_enterstate_event = null
+        state_name_in_enterstate_event = null
+
+        beforeEach =>
+          sm = @stateManager
+          spyOn(@_states.noTransitions, 'enter').andCallFake(->
+            currentState_in_stateenter_call = sm.getCurrentState()
+          )
+          @stateManager.on 'enter:state', (name) ->
+            currentState_in_enterstate_event = sm.getCurrentState()
+            state_name_in_enterstate_event = name
+          @stateManager.states.find.andReturn new Backbone.StateManager.State 'noTransitions', @_states.noTransitions
+          @
+
+        it 'sets the currentState before calling state.enter', =>
+          @stateManager.currentState = 'some_state'
+          @stateManager.enterState 'noTransitions'
+          expect(currentState_in_stateenter_call).toEqual('noTransitions')
+
+        it 'sets the currentState before triggering enter:state', =>
+          @stateManager.currentState = 'some_state'
+          @stateManager.enterState 'noTransitions'
+          expect(currentState_in_enterstate_event).toEqual('noTransitions')
+          expect(state_name_in_enterstate_event).toEqual('noTransitions')
+
+
       describe 'on states with transitions set', =>
         beforeEach =>
           @stateManager.states.find.andReturn enter : (->), __proto__ : Backbone.StateManager.State.prototype
